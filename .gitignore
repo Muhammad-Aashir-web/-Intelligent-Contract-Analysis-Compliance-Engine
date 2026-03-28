@@ -1,0 +1,117 @@
+# ------------------------------
+# Python / FastAPI backend
+# ------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python packaging/build artifacts
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Testing, type check, lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+
+# ------------------------------
+# Node / React / TypeScript frontend
+# ------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend build artifacts
+dist/
+build/
+coverage/
+.next/
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
+
+# ------------------------------
+# Environment variables & secrets
+# ------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+
+# ------------------------------
+# Docker / Compose
+# ------------------------------
+# Local docker override files
+docker-compose.override.yml
+
+# Docker data volumes and bind-mount folders (project-local)
+docker/volumes/
+docker/data/
+volumes/
+
+
+# ------------------------------
+# Databases / caches
+# ------------------------------
+# PostgreSQL
+postgres_data/
+postgresql_data/
+
+# Redis
+redis_data/
+
+
+# ------------------------------
+# Logs
+# ------------------------------
+*.log
+logs/
+
+
+# ------------------------------
+# VS Code
+# ------------------------------
+.vscode/
+
+
+# ------------------------------
+# OS-specific files
+# ------------------------------
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS (in case contributors use macOS)
+.DS_Store
+
+
+# ------------------------------
+# Misc temporary files
+# ------------------------------
+*.tmp
+*.temp
+*.swp
+*.swo
