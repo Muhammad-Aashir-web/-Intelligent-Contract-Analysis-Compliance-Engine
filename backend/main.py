@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from api.auth import router as auth_router
+from api.contracts import router as contracts_router
+from api.webhooks import router as webhooks_router
 from config import settings
 
 
@@ -40,6 +43,10 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["*"],
 )
+
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(contracts_router, prefix="/api/v1")
+app.include_router(webhooks_router, prefix="/api/v1")
 
 
 @app.get("/")
