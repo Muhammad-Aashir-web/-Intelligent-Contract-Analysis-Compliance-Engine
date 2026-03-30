@@ -4,7 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
+        env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
     # App Settings
@@ -20,7 +22,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Database Settings
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/contracts"
+    DATABASE_URL: str = "postgresql+psycopg2://contractuser:contractpassword@localhost:5433/contracts"
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # AI/LLM API Keys
