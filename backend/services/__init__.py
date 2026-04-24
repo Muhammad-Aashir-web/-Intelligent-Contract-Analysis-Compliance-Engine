@@ -4,5 +4,6 @@ from services.vector_store import PineconeVectorStore
 from services.embeddings import EmbeddingsService
 from services.weaviate_store import WeaviateVectorStore
 from services.rag import RAGService
+from services.llm import LLMService
 
-__all__ = ["PineconeVectorStore", "WeaviateVectorStore", "EmbeddingsService", "RAGService"]
+__all__ = ["PineconeVectorStore", "WeaviateVectorStore", "EmbeddingsService", "RAGService", "LLMService"]
