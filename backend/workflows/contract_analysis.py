@@ -15,6 +15,7 @@ from agents.extraction import ClauseExtractionAgent
 from agents.ingestion import DocumentIngestionAgent
 from agents.negotiation import NegotiationAgent
 from agents.risk import RiskAssessmentAgent
+from workflows.parallel_analysis import run_parallel_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -165,148 +166,50 @@ def extract_clauses(state: ContractAnalysisState) -> ContractAnalysisState:
 	return state
 
 
-def assess_risk(state: ContractAnalysisState) -> ContractAnalysisState:
-	"""Compute rule-based and AI-assisted risk analysis from extracted clauses."""
+def run_parallel_agents(state: ContractAnalysisState) -> ContractAnalysisState:
+	"""Run risk, compliance, and negotiation analysis in parallel."""
 
 	if state["error"] is not None:
-		logger.info("Skipping assess_risk due to prior workflow error")
+		logger.info("Skipping run_parallel_agents due to prior workflow error")
 		return state
 
-	state["current_step"] = "risk_assessment"
+	state["current_step"] = "parallel_analysis"
 	step_start = time.time()
-	logger.info("Workflow step started: assess_risk for contract_id=%s", state["contract_id"])
-
-	start_entry = _AUDIT_AGENT.log_event(
-		event_type="RISK_ASSESSMENT_STARTED",
-		contract_id=state["contract_id"],
-		user_id=state["user_id"],
-		agent_name="risk_assessment",
-		status="started",
-		details=None,
-		duration_seconds=None,
-	)
-	_append_audit_entry(state, start_entry)
+	logger.info("Workflow step started: run_parallel_agents for contract_id=%s", state["contract_id"])
 
 	extraction_result = state["extraction_result"] or {}
 	clauses = extraction_result.get("clauses", []) if isinstance(extraction_result, dict) else []
-	result = _RISK_AGENT.process(clauses, state["contract_id"])
 
-	result_dict = _safe_to_dict(result)
-	state["risk_result"] = result_dict if isinstance(result_dict, dict) else None
-	if isinstance(state["risk_result"], dict) and state["risk_result"].get("status") == "failed":
-		state["error"] = str(state["risk_result"].get("error_message") or "Risk assessment failed")
+	parallel_results = run_parallel_analysis(
+		clauses=clauses,
+		contract_id=state["contract_id"],
+		user_id=state["user_id"],
+		negotiation_stance=state["negotiation_stance"],
+		frameworks=state["frameworks"],
+	)
+
+	state["risk_result"] = parallel_results.get("risk")
+	state["compliance_result"] = parallel_results.get("compliance")
+	state["negotiation_result"] = parallel_results.get("negotiation")
+
+	for error_payload in parallel_results.get("errors", []):
+		logger.warning(
+			"Parallel agent reported error for contract_id=%s: %s",
+			state["contract_id"],
+			error_payload,
+		)
 
 	duration = time.time() - step_start
-	completion_event = "RISK_ASSESSMENT_FAILED" if state["error"] else "RISK_ASSESSMENT_COMPLETED"
-	completion_status = "failed" if state["error"] else "completed"
-
 	done_entry = _AUDIT_AGENT.log_event(
-		event_type=completion_event,
+		event_type="ANALYSIS_PIPELINE_COMPLETED",
 		contract_id=state["contract_id"],
 		user_id=state["user_id"],
-		agent_name="risk_assessment",
-		status=completion_status,
-		details=state["risk_result"],
-		duration_seconds=duration,
-	)
-	_append_audit_entry(state, done_entry)
-	return state
-
-
-def check_compliance(state: ContractAnalysisState) -> ContractAnalysisState:
-	"""Evaluate extracted clauses against selected compliance frameworks."""
-
-	if state["error"] is not None:
-		logger.info("Skipping check_compliance due to prior workflow error")
-		return state
-
-	state["current_step"] = "compliance_check"
-	step_start = time.time()
-	logger.info("Workflow step started: check_compliance for contract_id=%s", state["contract_id"])
-
-	start_entry = _AUDIT_AGENT.log_event(
-		event_type="COMPLIANCE_CHECK_STARTED",
-		contract_id=state["contract_id"],
-		user_id=state["user_id"],
-		agent_name="compliance_check",
-		status="started",
-		details={"frameworks": state["frameworks"]},
-		duration_seconds=None,
-	)
-	_append_audit_entry(state, start_entry)
-
-	extraction_result = state["extraction_result"] or {}
-	clauses = extraction_result.get("clauses", []) if isinstance(extraction_result, dict) else []
-	result = _COMPLIANCE_AGENT.process(clauses, state["contract_id"], state["frameworks"])
-
-	result_dict = _safe_to_dict(result)
-	state["compliance_result"] = result_dict if isinstance(result_dict, dict) else None
-	if isinstance(state["compliance_result"], dict) and state["compliance_result"].get("status") == "failed":
-		state["error"] = str(state["compliance_result"].get("error_message") or "Compliance check failed")
-
-	duration = time.time() - step_start
-	completion_event = "COMPLIANCE_CHECK_FAILED" if state["error"] else "COMPLIANCE_CHECK_COMPLETED"
-	completion_status = "failed" if state["error"] else "completed"
-
-	done_entry = _AUDIT_AGENT.log_event(
-		event_type=completion_event,
-		contract_id=state["contract_id"],
-		user_id=state["user_id"],
-		agent_name="compliance_check",
-		status=completion_status,
-		details=state["compliance_result"],
-		duration_seconds=duration,
-	)
-	_append_audit_entry(state, done_entry)
-	return state
-
-
-def suggest_negotiations(state: ContractAnalysisState) -> ContractAnalysisState:
-	"""Generate negotiation alternatives for high-risk clauses."""
-
-	if state["error"] is not None:
-		logger.info("Skipping suggest_negotiations due to prior workflow error")
-		return state
-
-	state["current_step"] = "negotiation"
-	step_start = time.time()
-	logger.info("Workflow step started: suggest_negotiations for contract_id=%s", state["contract_id"])
-
-	start_entry = _AUDIT_AGENT.log_event(
-		event_type="NEGOTIATION_STARTED",
-		contract_id=state["contract_id"],
-		user_id=state["user_id"],
-		agent_name="negotiation",
-		status="started",
-		details={"negotiation_stance": state["negotiation_stance"]},
-		duration_seconds=None,
-	)
-	_append_audit_entry(state, start_entry)
-
-	risk_result = state["risk_result"] or {}
-	clause_risks = risk_result.get("clause_risks", []) if isinstance(risk_result, dict) else []
-	result = _NEGOTIATION_AGENT.process(
-		clause_risks,
-		state["contract_id"],
-		state["negotiation_stance"],
-	)
-
-	result_dict = _safe_to_dict(result)
-	state["negotiation_result"] = result_dict if isinstance(result_dict, dict) else None
-	if isinstance(state["negotiation_result"], dict) and state["negotiation_result"].get("status") == "failed":
-		state["error"] = str(state["negotiation_result"].get("error_message") or "Negotiation suggestions failed")
-
-	duration = time.time() - step_start
-	completion_event = "NEGOTIATION_FAILED" if state["error"] else "NEGOTIATION_COMPLETED"
-	completion_status = "failed" if state["error"] else "completed"
-
-	done_entry = _AUDIT_AGENT.log_event(
-		event_type=completion_event,
-		contract_id=state["contract_id"],
-		user_id=state["user_id"],
-		agent_name="negotiation",
-		status=completion_status,
-		details=state["negotiation_result"],
+		agent_name="parallel_analysis",
+		status="completed",
+		details={
+			"duration": duration,
+			"errors": parallel_results.get("errors", []),
+		},
 		duration_seconds=duration,
 	)
 	_append_audit_entry(state, done_entry)
@@ -364,9 +267,7 @@ def build_contract_analysis_graph() -> StateGraph:
 
 	workflow.add_node("ingest_document", ingest_document)
 	workflow.add_node("extract_clauses", extract_clauses)
-	workflow.add_node("assess_risk", assess_risk)
-	workflow.add_node("check_compliance", check_compliance)
-	workflow.add_node("suggest_negotiations", suggest_negotiations)
+	workflow.add_node("run_parallel_agents", run_parallel_agents)
 	workflow.add_node("finalize_audit", finalize_audit)
 
 	workflow.set_entry_point("ingest_document")
@@ -384,14 +285,12 @@ def build_contract_analysis_graph() -> StateGraph:
 		"extract_clauses",
 		should_continue,
 		{
-			"continue": "assess_risk",
+			"continue": "run_parallel_agents",
 			"finalize_audit": "finalize_audit",
 		},
 	)
 
-	workflow.add_edge("assess_risk", "check_compliance")
-	workflow.add_edge("check_compliance", "suggest_negotiations")
-	workflow.add_edge("suggest_negotiations", "finalize_audit")
+	workflow.add_edge("run_parallel_agents", "finalize_audit")
 	workflow.add_edge("finalize_audit", END)
 
 	return workflow.compile()
