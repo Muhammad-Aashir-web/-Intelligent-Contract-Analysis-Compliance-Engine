@@ -20,10 +20,12 @@ from models.contract import Contract
 from models.user import User
 from services.embeddings import EmbeddingsService
 from services.rag import RAGService
+from services.storage import FileStorageService
 from workflows.contract_analysis import run_contract_analysis
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 logger = logging.getLogger(__name__)
+storage = FileStorageService()
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx"}
 MAX_FILE_SIZE_BYTES = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -83,50 +85,41 @@ async def upload_contract(
     negotiation_stance: str = "balanced",
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    extension = Path(file.filename or "").suffix.lower()
-    if extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file type. Only PDF and DOCX are allowed.",
-        )
-
-    content = await file.read()
-    file_size = len(content)
-    if file_size > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File exceeds maximum size of {settings.MAX_UPLOAD_SIZE_MB}MB.",
-        )
-
-    await file.seek(0)
+    upload_contract_id = str(uuid.uuid4())
+    logger.info(
+        "Starting upload for temporary_contract_id=%s filename=%s",
+        upload_contract_id,
+        file.filename,
+    )
     user = _get_or_create_placeholder_user(db)
 
-    contract = Contract(
-        title=Path(file.filename or "untitled").stem,
-        file_name=file.filename or "untitled",
-        file_path=None,
-        file_size=file_size,
-        contract_type="DOCX" if extension == ".docx" else "PDF",
-        status="uploaded",
-        user_id=user.id,
-    )
-
     try:
+        saved_upload = await storage.save_upload(file=file, contract_id=upload_contract_id)
+        saved_path = str(saved_upload["file_path"])
+        saved_file_name = str(saved_upload["file_name"])
+        saved_file_size = int(saved_upload["file_size"])
+        saved_file_type = str(saved_upload["file_type"])
+
+        logger.info(
+            "Upload persisted for temporary_contract_id=%s path=%s size=%s",
+            upload_contract_id,
+            saved_path,
+            saved_file_size,
+        )
+
+        contract = Contract(
+            title=Path(saved_file_name or "untitled").stem,
+            file_name=saved_file_name,
+            file_path=saved_path,
+            file_size=saved_file_size,
+            contract_type=saved_file_type,
+            status="uploaded",
+            user_id=user.id,
+        )
+
         db.add(contract)
         db.commit()
         db.refresh(contract)
-
-        uploads_dir = Path(__file__).resolve().parents[2] / "data" / "uploads" / str(contract.id)
-        uploads_dir.mkdir(parents=True, exist_ok=True)
-        safe_filename = f"{uuid.uuid4()}_{file.filename or 'contract'}"
-        saved_path = uploads_dir / safe_filename
-
-        with saved_path.open("wb") as out_file:
-            shutil.copyfileobj(file.file, out_file)
-
-        contract.file_path = str(saved_path)
-        contract.file_size = saved_path.stat().st_size
-        db.commit()
 
         framework_list = [item.strip().upper() for item in frameworks.split(",") if item.strip()] or ["GENERAL"]
 
@@ -135,11 +128,11 @@ async def upload_contract(
 
         process_task = celery_app.tasks.get("process_contract_task") if hasattr(celery_app, "tasks") else None
         if process_task is not None:
-            process_task.delay(contract.id, str(saved_path), framework_list, negotiation_stance)
+            process_task.delay(contract.id, saved_path, framework_list, negotiation_stance)
         else:
             celery_app.send_task(
                 "process_contract_task",
-                args=[contract.id, str(saved_path), framework_list, negotiation_stance],
+                args=[contract.id, saved_path, framework_list, negotiation_stance],
             )
 
         logger.info(
@@ -151,6 +144,8 @@ async def upload_contract(
         return {
             "contract_id": contract.id,
             "filename": contract.file_name,
+            "file_size": contract.file_size,
+            "file_type": contract.contract_type,
             "status": contract.status,
             "message": "Contract uploaded and processing started.",
         }
@@ -163,8 +158,6 @@ async def upload_contract(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload contract: {exc}",
         )
-    finally:
-        await file.close()
 
 
 @router.get("/{contract_id}/status")
