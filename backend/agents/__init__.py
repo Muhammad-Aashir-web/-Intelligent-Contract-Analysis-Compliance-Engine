@@ -1,5 +1,6 @@
 """AI Agents for contract analysis pipeline."""
 
+from agents.audit import AuditTrailAgent
 from agents.compliance import ComplianceAgent
 from agents.extraction import ClauseExtractionAgent
 from agents.ingestion import DocumentIngestionAgent
@@ -12,4 +13,5 @@ __all__ = [
 	"RiskAssessmentAgent",
 	"ComplianceAgent",
 	"NegotiationAgent",
+	"AuditTrailAgent",
 ]
