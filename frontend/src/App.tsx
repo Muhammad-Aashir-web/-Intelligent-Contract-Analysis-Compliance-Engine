@@ -1,10 +1,16 @@
+import { BrowserRouter, Route, Routes } from "react-router-dom"
+
+import Contracts from "./src/pages/Contracts"
+import Dashboard from "./src/pages/Dashboard"
+
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <h1 className="text-3xl font-bold text-center text-blue-700 mt-20">
-        Contract Intelligence Platform
-      </h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/contracts" element={<Contracts />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
