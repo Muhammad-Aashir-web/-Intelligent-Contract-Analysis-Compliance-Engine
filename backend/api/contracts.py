@@ -21,11 +21,13 @@ from models.user import User
 from services.embeddings import EmbeddingsService
 from services.rag import RAGService
 from services.storage import FileStorageService
+from services.task_monitor import TaskMonitorService
 from workflows.contract_analysis import run_contract_analysis
 
 router = APIRouter(prefix="/contracts", tags=["Contracts"])
 logger = logging.getLogger(__name__)
 storage = FileStorageService()
+task_monitor = TaskMonitorService()
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx"}
 MAX_FILE_SIZE_BYTES = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -56,6 +58,10 @@ class AnalysisRequest(BaseModel):
 
 class AskRequest(BaseModel):
     question: str
+
+
+class CancelTaskRequest(BaseModel):
+    task_id: str
 
 
 def _get_or_create_placeholder_user(db: Session) -> User:
@@ -194,6 +200,97 @@ def list_contracts(
     total = db.query(Contract).count()
     contracts = db.query(Contract).offset(skip).limit(limit).all()
     return ContractListResponse(contracts=contracts, total=total)
+
+
+@router.get("/{contract_id}/task-status")
+def get_contract_task_status(
+    contract_id: int,
+    task_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    """Return background task execution status for a contract."""
+
+    logger.info("Fetching task status for contract_id=%s task_id=%s", contract_id, task_id)
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if contract is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contract not found.",
+        )
+
+    if task_id:
+        task_status = task_monitor.get_task_status(task_id)
+        return {
+            "task_id": task_status.get("task_id"),
+            "status": task_status.get("status"),
+            "progress": task_status.get("progress"),
+            "result": task_status.get("result"),
+            "error": task_status.get("error"),
+        }
+
+    progress_map = {
+        "pending": 0,
+        "uploaded": 0,
+        "processing": 25,
+        "retry": 50,
+        "completed": 100,
+        "failed": 0,
+        "cancelled": 0,
+    }
+    status_value = str(contract.status or "PENDING")
+
+    return {
+        "task_id": None,
+        "status": status_value,
+        "progress": progress_map.get(status_value.lower(), 0),
+        "result": None,
+        "error": None,
+    }
+
+
+@router.post("/{contract_id}/cancel")
+def cancel_contract_task(
+    contract_id: int,
+    payload: CancelTaskRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    """Cancel a running analysis task and mark contract as cancelled."""
+
+    logger.info("Cancelling task for contract_id=%s task_id=%s", contract_id, payload.task_id)
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if contract is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contract not found.",
+        )
+
+    cancellation = task_monitor.cancel_task(payload.task_id)
+    contract.status = "cancelled"
+    db.commit()
+
+    return {
+        "contract_id": contract_id,
+        "task_id": cancellation.get("task_id"),
+        "status": contract.status,
+        "message": cancellation.get("message", "Task cancellation requested"),
+    }
+
+
+@router.get("/tasks/active")
+def get_active_analysis_tasks() -> list[dict[str, object]]:
+    """List currently active background analysis tasks."""
+
+    logger.info("Listing active analysis tasks")
+    active_tasks = task_monitor.get_all_active_tasks()
+    return [
+        {
+            "contract_id": None,
+            "task_id": str(item.get("task_id", "")),
+            "status": str(item.get("status", "STARTED")),
+        }
+        for item in active_tasks
+        if str(item.get("task_id", "")).strip()
+    ]
 
 
 @router.get("/{contract_id}", response_model=ContractResponse)

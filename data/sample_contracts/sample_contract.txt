@@ -1,0 +1,35 @@
+SERVICE AGREEMENT
+
+This Service Agreement ("Agreement") is entered into as of January 1, 2025,
+between ABC Corporation ("Client") and XYZ Services Ltd ("Vendor").
+
+1. PAYMENT TERMS
+Payment shall be due within 90 days of invoice. Late payments shall incur
+a penalty of 5% per month compounded monthly. Client waives all rights to
+dispute invoices after 7 days of receipt.
+
+2. LIABILITY
+Vendor's total liability shall be unlimited under all circumstances.
+Client shall indemnify Vendor against all claims, losses, and expenses
+including legal fees arising from any cause whatsoever.
+
+3. TERMINATION
+Vendor may terminate this agreement at any time with 24 hours notice
+at its sole discretion. Client may only terminate with 180 days written
+notice and payment of all remaining contract value.
+
+4. INTELLECTUAL PROPERTY
+All work product, inventions, and intellectual property created by either
+party shall become the sole property of Vendor irrevocably and permanently.
+
+5. GOVERNING LAW
+This agreement shall be governed by the laws of an unspecified jurisdiction.
+All disputes shall be resolved by arbitration chosen solely by Vendor.
+
+6. DATA PROTECTION
+Vendor may share client data with any third party without restriction
+or notification to Client.
+
+7. CONFIDENTIALITY
+Client shall keep all Vendor information confidential indefinitely.
+Vendor has no confidentiality obligations to Client.
