@@ -26,9 +26,7 @@ function ClauseList({ clauses, isLoading = false }: ClauseListProps) {
 	})
 
 	const handleToggle = (clauseId: string) => {
-		setExpandedId((currentExpandedId) =>
-			currentExpandedId === clauseId ? null : clauseId,
-		)
+		setExpandedId((currentExpandedId) => (currentExpandedId === clauseId ? null : clauseId))
 	}
 
 	return (

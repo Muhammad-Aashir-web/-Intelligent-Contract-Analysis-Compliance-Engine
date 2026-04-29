@@ -14,6 +14,7 @@ export interface Clause {
 
 export interface Contract {
 	id: string
+	contract_id?: number
 	fileName: string
 	uploadedAt: string
 	status: ContractStatus

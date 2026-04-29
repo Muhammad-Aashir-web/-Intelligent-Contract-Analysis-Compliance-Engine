@@ -1,8 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 
-import Contracts from "./src/pages/Contracts"
-import Dashboard from "./src/pages/Dashboard"
 import Compliance from "./pages/Compliance"
+import Contracts from "./pages/Contracts"
+import Dashboard from "./pages/Dashboard"
 import RiskAnalysis from "./pages/RiskAnalysis"
 
 function App() {

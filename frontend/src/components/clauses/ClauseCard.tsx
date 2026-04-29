@@ -18,10 +18,7 @@ const riskBadgeClasses: Record<Clause["riskLevel"], string> = {
 function ClauseCard({ clause, isExpanded, onToggle }: ClauseCardProps) {
 	return (
 		<div className="border rounded-lg overflow-hidden mb-3 cursor-pointer">
-			<div
-				className="flex justify-between items-center p-4 bg-white hover:bg-gray-50"
-				onClick={onToggle}
-			>
+			<div className="flex justify-between items-center p-4 bg-white hover:bg-gray-50" onClick={onToggle}>
 				<div className="flex items-center gap-3">
 					<span
 						className={`px-2 py-1 rounded-full text-xs font-medium uppercase ${riskBadgeClasses[clause.riskLevel]}`}

@@ -61,11 +61,7 @@ function PDFViewer({ fileUrl, fileName, onClear }: PDFViewerProps) {
 			</div>
 
 			<div className="flex items-center justify-center p-4 min-h-[400px]">
-				<Document
-					file={fileUrl}
-					onLoadSuccess={onDocumentLoadSuccess}
-					onLoadError={onDocumentLoadError}
-				>
+				<Document file={fileUrl} onLoadSuccess={onDocumentLoadSuccess} onLoadError={onDocumentLoadError}>
 					<Page
 						pageNumber={pageNumber}
 						scale={scale}
