@@ -1,0 +1,230 @@
+{
+  "name": "Salesforce Contract Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contract-completed",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8a7e519c-2f09-42e5-ab68-631838f610b5",
+      "name": "Webhook",
+      "webhookId": "604cd3bd-7f4e-49b5-8ffb-e392a3b02f05"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ab7684b4-c645-46d4-93bc-ea1b1666b00f",
+              "name": "contract_id",
+              "value": "={{ $json.body.contract_id }}",
+              "type": "string"
+            },
+            {
+              "id": "fba02592-d30e-4b19-b92b-8a9514381f49",
+              "name": "risk_score",
+              "value": "={{ $json.body.risk_score }}",
+              "type": "string"
+            },
+            {
+              "id": "3bc857db-1696-4573-bc11-6ab4a9ef976e",
+              "name": "status",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "fd6af6a1-1746-4f9e-8afd-7075cf1abbfb",
+              "name": "filename",
+              "value": "={{ $json.body.filename }}",
+              "type": "string"
+            },
+            {
+              "id": "4353ec26-a332-4153-a27b-c346bf71e854",
+              "name": "analyzed_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "c03f7e29-e9fa-41ea-b063-663c9576b051",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7c55567f-55aa-404d-8d13-f8574b6f98f0",
+              "leftValue": "={{ Number($json.risk_score) }}",
+              "rightValue": 60,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "4d321c46-9d92-40bf-b5f5-402468196b69",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/api/v1/webhooks/n8n",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"event_type\": \"salesforce-sync-high\",\n  \"data\": {\"contract_id\": \"{{ $json.contract_id }}\", \"risk_score\": \"{{ $json.risk_score }}\", \"action\": \"create_opportunity\"},\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "69d6d20a-b6e9-491c-a441-df6c7bc5f197",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/api/v1/webhooks/n8n",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"event_type\": \"salesforce-sync-low\",\n  \"data\": {\"contract_id\": \"{{ $json.contract_id }}\", \"risk_score\": \"{{ $json.risk_score }}\", \"action\": \"update_record\"},\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        96
+      ],
+      "id": "87202510-1902-474f-935e-23b184d545b9",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"synced\",\n  \"workflow\": \"salesforce-sync\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        848,
+        0
+      ],
+      "id": "075ff058-66a3-46b1-a908-d16907e59b6d",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d4f74931-6297-4fe9-9bc6-b090319b8266",
+  "meta": {
+    "instanceId": "3328513a456a5e367be51c8c3ac21427e8d061cc807d0b2ccdc95bdca836d28b"
+  },
+  "id": "gVG7jWM9MoL5TLbO",
+  "tags": []
+}
