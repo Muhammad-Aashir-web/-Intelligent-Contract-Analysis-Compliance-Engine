@@ -14,6 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - default
+      - contract-network
   redis:
     image: redis:7-alpine
     container_name: contract_redis
@@ -25,6 +26,7 @@ services:
       - redis_data:/data
     networks:
       - default
+      - contract-network
   n8n:
     image: n8nio/n8n:latest
     container_name: contract-n8n
@@ -47,7 +49,38 @@ services:
       - redis
     networks:
       - default
+      - contract-network
+  backend:
+    build:
+      context: ../backend
+    container_name: contract-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ../backend/.env
+    volumes:
+      - ../backend/data/uploads:/app/data/uploads
+    networks:
+      - contract-network
+  frontend:
+    build:
+      context: ../frontend
+    container_name: contract-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - contract-network
 volumes:
   postgres_data:
   redis_data:
   n8n_data:
+networks:
+  contract-network:
+    driver: bridge
