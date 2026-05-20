@@ -1,0 +1,20 @@
+NON-DISCLOSURE AGREEMENT
+
+This Non-Disclosure Agreement ("Agreement") is entered into as of January 1, 2024, 
+between Acme Corporation ("Disclosing Party") and Beta LLC ("Receiving Party").
+
+1. CONFIDENTIAL INFORMATION
+The Receiving Party agrees to hold in strict confidence all proprietary information, 
+trade secrets, and business data disclosed by the Disclosing Party.
+
+2. TERM
+This Agreement shall remain in effect for a period of 5 years from the date of signing.
+
+3. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of California.
+
+4. DATA PROTECTION
+Both parties agree to comply with GDPR and CCPA regulations regarding personal data.
+
+5. PENALTIES
+Breach of this agreement will result in liquidated damages of $500,000.
