@@ -2,27 +2,45 @@ import apiClient from "./api"
 
 import type { AnalysisResult, Contract } from "../types/contract"
 
+/**
+ * Maps snake_case API response fields to camelCase Contract type.
+ * Backend returns: id, file_name, risk_score, created_at, status, contract_type
+ * Frontend expects: id, fileName, riskScore, uploadedAt, status
+ */
+function mapContractFromApi(raw: any): Contract {
+	return {
+		id: String(raw.id),
+		contract_id: raw.contract_id,
+		fileName: raw.file_name,
+		uploadedAt: raw.created_at,
+		status: raw.status,
+		riskScore: raw.risk_score,
+		clauses: raw.clauses,
+		complianceStatus: raw.compliance_status,
+	}
+}
+
 export async function uploadContract(file: File): Promise<Contract> {
 	const formData = new FormData()
 	formData.append("file", file)
 
-	const response = await apiClient.post<Contract>("/contracts/upload", formData, {
+	const response = await apiClient.post<any>("/contracts/upload", formData, {
 		headers: {
 			"Content-Type": "multipart/form-data",
 		},
 	})
 
-	return response.data
+	return mapContractFromApi(response.data)
 }
 
 export async function getContracts(): Promise<Contract[]> {
-	const response = await apiClient.get<Contract[]>("/contracts")
-	return response.data
+	const response = await apiClient.get<{ contracts: any[]; total: number }>("/contracts")
+	return response.data.contracts.map(mapContractFromApi)
 }
 
 export async function getContract(id: string): Promise<Contract> {
-	const response = await apiClient.get<Contract>(`/contracts/${id}`)
-	return response.data
+	const response = await apiClient.get<any>(`/contracts/${id}`)
+	return mapContractFromApi(response.data)
 }
 
 export async function analyzeContract(id: string): Promise<{ task_id: string }> {

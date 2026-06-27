@@ -132,12 +132,12 @@ async def upload_contract(
         if celery_app is None:
             raise RuntimeError("celery_app is not configured")
 
-        process_task = celery_app.tasks.get("process_contract_task") if hasattr(celery_app, "tasks") else None
+        process_task = celery_app.tasks.get("celery_app.process_contract_task") if hasattr(celery_app, "tasks") else None
         if process_task is not None:
             process_task.delay(contract.id, saved_path, framework_list, negotiation_stance)
         else:
             celery_app.send_task(
-                "process_contract_task",
+                "celery_app.process_contract_task",
                 args=[contract.id, saved_path, framework_list, negotiation_stance],
             )
 

@@ -66,6 +66,22 @@ services:
       - ../backend/data/uploads:/app/data/uploads
     networks:
       - contract-network
+  celery_worker:
+    build:
+      context: ../backend
+    container_name: contract-celery-worker
+    restart: unless-stopped
+    command: celery -A celery_app worker --loglevel=info --pool=solo
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    env_file:
+      - ../backend/.env
+    volumes:
+      - ../backend/data/uploads:/app/data/uploads
+    networks:
+      - contract-network
   frontend:
     build:
       context: ../frontend
