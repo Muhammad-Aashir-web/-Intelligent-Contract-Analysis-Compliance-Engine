@@ -228,7 +228,8 @@ def mock_external_services(mocker):
             SimpleNamespace(
                 tasks={
                     "process_contract_task": SimpleNamespace(delay=lambda *args, **kwargs: None)
-                }
+                },
+                send_task=lambda *args, **kwargs: None,
             ),
         )
     except Exception:
